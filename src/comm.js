@@ -1,24 +1,43 @@
 import {SerialPort} from "serialport";
 import { Transform } from "stream";
 import {StreamReader} from "./stream_reader.js";
-import stream from "node:stream";
 
 export class Comm {
     port;
-    writerResult;
+    writeBuffer;
+
     constructor(path, writer) {
         this.writer = new StreamReader();
         this.port = new SerialPort({
             path: path,
             baudRate: 9600,
         });
+        this.writeBuffer = [];
     }
 
     Receive() {
+        const that = this;
         const parser = new Transform({
             transform(chunk, encoding, callback) {
                 const data = chunk.toString();
-                console.log(`Received Data: ${data}`);
+                const dataArray = data.split("");
+                for (let dataPoint of dataArray) {
+                    if(dataPoint === "#") {
+                        let count = 0;
+                        for (let charItem of that.writeBuffer) {
+                            if(charItem === '@' && that.writeBuffer[count + 1] === '0') {
+                                that.writeBuffer[count] = "#";
+                                that.writeBuffer[count + 1] = '';
+                            }
+                            count++;
+                        }
+                        console.log(`Recieved Data: ${that.writeBuffer.join('')}`)
+                        that.writeBuffer = [];
+                    }
+                    else {
+                        that.writeBuffer.push(dataPoint)
+                    }
+                }
                 callback(null, chunk);
             }
         });
