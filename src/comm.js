@@ -1,10 +1,15 @@
 import {SerialPort} from "serialport";
 import { Transform } from "stream";
 import {StreamReader} from "./stream_reader.js";
+import {Crypto} from "alxhub_crypto/src/crypto.js";
+import * as fs from "node:fs";
+import {AESData} from "alxhub_crypto/src/aes_data.js";
 
 export class Comm {
     port;
     writeBuffer;
+    pubKey;
+    key;
 
     constructor(path, writer) {
         this.writer = new StreamReader();
@@ -15,8 +20,9 @@ export class Comm {
         this.writeBuffer = [];
     }
 
-    Receive() {
+    async Receive() {
         const that = this;
+        console.log("Launching Parser")
         const parser = new Transform({
             transform(chunk, encoding, callback) {
                 const data = chunk.toString();
@@ -31,7 +37,8 @@ export class Comm {
                             }
                             count++;
                         }
-                        console.log(`Recieved Data: ${that.writeBuffer.join('')}`)
+                        const msg = that.writeBuffer.join('');
+                        console.log(`Message: ${msg}`);
                         that.writeBuffer = [];
                     }
                     else {
@@ -45,8 +52,12 @@ export class Comm {
         this.port.pipe(parser);
     }
 
-    Send(msg) {
-        this.port.write(msg, (err) => {
+    async Send(msg) {
+        const parsedMsg = msg.replaceAll("#", "@0");
+
+        const finalMsg = parsedMsg + "#";
+
+        this.port.write(finalMsg, (err) => {
             if (err) {
                 console.log('Error on write: ', err.message);
             } else {

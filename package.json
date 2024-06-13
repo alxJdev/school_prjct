@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "serialport": "^12.0.0"
+    "serialport": "^12.0.0",
+    "alxhub_crypto": "github:alxJdev/alxhub_crypto"
   }
 }
