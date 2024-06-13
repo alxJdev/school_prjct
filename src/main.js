@@ -1,4 +1,3 @@
-import {SerialPort} from "serialport";
 import {Comm} from "./comm.js";
 
 // This file is deprecated. Please Ignore

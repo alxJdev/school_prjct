@@ -1,23 +1,23 @@
 import {SerialPort} from "serialport";
 import { Transform } from "stream";
 import {StreamReader} from "./stream_reader.js";
-import {Crypto} from "alxhub_crypto/src/crypto.js";
-import * as fs from "node:fs";
-import {AESData} from "alxhub_crypto/src/aes_data.js";
+import {Crypto} from "./lib.js";
 
 export class Comm {
     port;
     writeBuffer;
     pubKey;
     key;
+    crypto;
 
-    constructor(path, writer) {
+    constructor(path, key) {
         this.writer = new StreamReader();
         this.port = new SerialPort({
             path: path,
             baudRate: 9600,
         });
         this.writeBuffer = [];
+        this.crypto = new Crypto(key);
     }
 
     async Receive() {
@@ -30,15 +30,16 @@ export class Comm {
                 for (let dataPoint of dataArray) {
                     if(dataPoint === "#") {
                         let count = 0;
-                        for (let charItem of that.writeBuffer) {
+                        /*for (let charItem of that.writeBuffer) {
                             if(charItem === '@' && that.writeBuffer[count + 1] === '0') {
                                 that.writeBuffer[count] = "#";
                                 that.writeBuffer[count + 1] = '';
                             }
                             count++;
-                        }
+                        }*/
                         const msg = that.writeBuffer.join('');
-                        console.log(`Message: ${msg}`);
+                        const decrypted = that.crypto.decrypt(msg)
+                        console.log(`Message: ${decrypted}`);
                         that.writeBuffer = [];
                     }
                     else {
@@ -53,15 +54,19 @@ export class Comm {
     }
 
     async Send(msg) {
-        const parsedMsg = msg.replaceAll("#", "@0");
+        //const parsedMsg = msg.replaceAll("#", "@0");
 
-        const finalMsg = parsedMsg + "#";
+        const encrypted = this.crypto.encrypt(msg);
+
+        const parsed = encrypted.replaceAll("#", "@0")
+
+        const finalMsg = parsed + "#";
 
         this.port.write(finalMsg, (err) => {
             if (err) {
                 console.log('Error on write: ', err.message);
             } else {
-                console.log('Message written: ', msg);
+                console.log('Message written: ', encrypted);
             }
         });
     }
